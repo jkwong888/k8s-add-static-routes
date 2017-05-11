@@ -1,0 +1,38 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet 
+metadata:
+  name: add-static-route
+  labels: 
+    app: test
+spec:
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+        - name: add-static-route
+          image: jkwong/add-static-route
+          volumeMounts:
+            - mountPath: "/host/root"
+              name: host-root
+              readOnly: false
+            - mountPath: "/host/interfaces"
+              name: host-interfaces
+              readOnly: false
+            - mountPath: "/var/run/configmaps/static-routes"
+              name: static-routes
+              readOnly: true
+      volumes:
+        - name: host-root
+          hostPath:
+              path: /root
+        - name: host-interfaces
+          hostPath:
+              path: /etc/network/interfaces
+        - name: static-routes
+          configMap:
+              name: static-routes
+              items:
+              - key: static-route.file
+                path: static-routes.json
