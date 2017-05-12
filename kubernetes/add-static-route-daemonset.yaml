@@ -2,37 +2,35 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet 
 metadata:
   name: add-static-route
-  labels: 
-    app: test
+  namespace: default
 spec:
   template:
     metadata:
+      name: add-static-route
       labels:
-        app: test
+        name: add-static-route
     spec:
+      hostNetwork: true
       containers:
         - name: add-static-route
-          image: jkwong/add-static-route
-          volumeMounts:
-            - mountPath: "/host/root"
-              name: host-root
-              readOnly: false
-            - mountPath: "/host/interfaces"
-              name: host-interfaces
-              readOnly: false
-            - mountPath: "/var/run/configmaps/static-routes"
-              name: static-routes
-              readOnly: true
-      volumes:
-        - name: host-root
-          hostPath:
-              path: /root
-        - name: host-interfaces
-          hostPath:
-              path: /etc/network/interfaces
-        - name: static-routes
-          configMap:
-              name: static-routes
-              items:
-              - key: static-route.file
-                path: static-routes.json
+          image: ibmcase/kubectl
+          imagePullPolicy: Always
+          command: [ "/bin/bash", "-c" ]
+          args:
+          - >
+              while 
+                _routes=`kubectl get configmap static-routes -o go-template --template '{{.data.routes}}' | jq 'join(" ")' | sed -e 's/"//g'`;
+                _gateway=`ip route get 10.0.0.0/8 | sed 's/.*via \(.*\) dev.*/\1/'`;
+                for _route in ${_routes}; do
+                  [ -z "`ip route show | grep ${_route} | grep ${_gateway}`" ] || continue; 
+                  echo "Adding ${_route} via ${_gateway} ...";
+                  ip route add ${_route} via ${_gateway};
+                done;
+              do
+                sleep 30;
+              done
+          securityContext:
+            capabilities:
+              add:
+              - NET_ADMIN
+
