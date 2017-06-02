@@ -1,0 +1,51 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet 
+metadata:
+  name: add-static-route
+  namespace: default
+spec:
+  template:
+    metadata:
+      name: add-static-route
+      labels:
+        name: add-static-route
+    spec:
+      hostNetwork: true
+      containers:
+        - name: add-static-route
+          image: ibmcase/kubectl
+          imagePullPolicy: Always
+          command: [ "/bin/bash", "-c" ]
+          args:
+          - >
+              _gateway=`ip route get 10.0.0.0/8 | sed 's/.*via \(.*\) dev.*/\1/'`;
+              touch routes_${_lastVersion}.txt;
+              while true;
+              do
+                _currVersion=`kubectl get configmap static-routes -o go-template --template '{{.metadata.resourceVersion}}'`
+                if [ "${_lastVersion}" == "${_currVersion}" ]; then
+                  _lastVersion=${_currVersion};
+                  sleep 5;
+                  continue;
+                fi;
+                echo "Change detected to configmap (lastVersion=${_lastVersion}, currVersion=${_currVersion})!";
+                kubectl get configmap static-routes -o go-template --template '{{.data.routes}}' | jq -r 'join("\n")' | sort | uniq > routes_${_currVersion}.txt;
+                for _route in `comm -23 routes_${_lastVersion}.txt routes_${_currVersion}.txt`; do
+                  [ ! -z "`ip route show | grep ${_route} | grep ${_gateway}`" ] || continue; 
+                  echo "Deleting ${_route} via ${_gateway} ...";
+                  ip route del ${_route} via ${_gateway};
+                done;
+                for _route in `comm -1 routes_${_lastVersion}.txt routes_${_currVersion}.txt | awk '{print $1;}'`; do
+                  [ -z "`ip route show | grep ${_route} | grep ${_gateway}`" ] || continue; 
+                  echo "Adding ${_route} via ${_gateway} ...";
+                  ip route add ${_route} via ${_gateway};
+                done;
+
+                rm -f routes_${_lastVersion}.txt;
+                _lastVersion=${_currVersion};
+              done
+          securityContext:
+            capabilities:
+              add:
+              - NET_ADMIN
+
