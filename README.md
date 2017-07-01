@@ -4,7 +4,7 @@ When connecting a Kubernetes cluster to networks on-premise, we can utilize a Vy
 
 However, because all worker nodes are placed on both the private and public networks in IBM Bluemix Infrastructure, the static route table in each worker node contains a route for the private network (10.0.0.0/8) and the public network (default route). This results in the diagram below:
 
-![VPN with reverse path filter](static/vyatta\ vpn\ rpfilter.png)
+![VPN with reverse path filter](./static/vyatta vpn rpfilter.png)
 
 Because of [Reverse Path Filtering](http://tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.kernel.rpf.html), the worker node will drop the response because the kernel's route table does not contain a route for where the packet originated from.
 
@@ -34,7 +34,7 @@ Because IBM Bluemix Infrastructure assigns the worker nodes from the Kubernetes 
 
 A common workaround to this problem is to define a one-to-one mapping at the router level using unused private address space using Bi-directional NAT.
 
-![Bidirectional NAT](static/vyatta\ gateway\ vpn\ bidirectional\ nat.png)
+![Bidirectional NAT](./static/vyatta gateway vpn bidirectional nat.png)
 
 In this example, the router translates the IP addresses as shown in the diagram before routing it to the destination.  When configuring the Bluemix side of the tunnel, we specify the on-premise subnet as 192.168.1.0/24 (and also place that in our ConfigMap).  Any packets destined for on-premise will be forwarded over the tunnel where the remote endpoint will translate that to the matching address in 10.0.1.0/24 before forwarding the packets to the destination.  Similarly, on the on-premise side of the tunnel, we configure the Cloud subnet as 192.168.2.0/27, and configure the Vyatta Gateway Appliance to translates that to the matching address in 10.0.1.0/27 before forwarding the packets to the destination.
 
