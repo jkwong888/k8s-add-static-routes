@@ -1,0 +1,10 @@
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: add-static-routes-role
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["configmaps"]
+  resourceNames: ["static-routes"]
+  verbs: ["get"]
