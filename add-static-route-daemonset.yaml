@@ -24,6 +24,11 @@ spec:
               while true;
               do
                 _currVersion=`kubectl get configmap static-routes -o go-template --template '{{.metadata.resourceVersion}}'`
+                if [ $? -ne 0 ]; then
+                  echo "Error getting configmap version, taking no action";
+                  sleep 15;
+                  continue;
+                fi;
                 if [ "${_lastVersion}" == "${_currVersion}" ]; then
                   _lastVersion=${_currVersion};
                   sleep 5;
@@ -31,6 +36,11 @@ spec:
                 fi;
                 echo "Change detected to configmap (lastVersion=${_lastVersion}, currVersion=${_currVersion})!";
                 kubectl get configmap static-routes -o go-template --template '{{.data.routes}}' | jq -r 'join("\n")' | sort | uniq > routes_${_currVersion}.txt;
+                if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+                  echo "Error getting configmap contents, taking no action";
+                  sleep 5;
+                  continue;
+                fi;
                 for _route in `comm -23 routes_${_lastVersion}.txt routes_${_currVersion}.txt`; do
                   [ ! -z "`ip route show | grep ${_route} | grep ${_gateway}`" ] || continue;
                   echo "Deleting ${_route} via ${_gateway} ...";
