@@ -1,6 +1,7 @@
 # IBM Kubernetes Service - Adding private network static routes via DaemonSet
 
-***NOTE: This is not an officially supported IBM solution!***
+***NOTE: This repo is now deprecated. Please follow [the documentation](https://cloud.ibm.com/docs/containers?topic=containers-static-routes) here on the official supported solution to this problem.  The README here is left for historical purposes.***
+
 
 When connecting a IBM Kubernetes Service (IKS) cluster to networks on-premise, we can utilize a Virutal Router Appliance to serve as an IPSec VPN endpoint.
 
